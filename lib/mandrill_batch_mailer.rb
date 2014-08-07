@@ -1,0 +1,2 @@
+module MandrillBatchMailer
+end
