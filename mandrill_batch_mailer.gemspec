@@ -15,10 +15,14 @@ Gem::Specification.new do |s|
     ['MIT-LICENSE', 'Rakefile', 'README.md']
   s.test_files = Dir['spec/**/*']
 
+  s.add_runtime_dependency 'activesupport'
+
   s.add_development_dependency 'rspec', '~> 3.0.0'
+  s.add_development_dependency 'faker'
   s.add_development_dependency 'travis'
   s.add_development_dependency 'simplecov'
   s.add_development_dependency 'coveralls'
   s.add_development_dependency 'rubocop'
   s.add_development_dependency 'cane'
+  s.add_development_dependency 'pry'
 end
