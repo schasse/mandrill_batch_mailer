@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.homepage    = 'http://github.com/schasse/mandrill_batch_mailer'
   s.summary     = 'Send batched Mails via Mandrill API'
   s.description = 'Send batched Mails via Mandrill API'
+  s.licenses    = ['MIT']
 
   s.files = Dir['{lib}/**/*'] +
     ['MIT-LICENSE', 'Rakefile', 'README.md']
