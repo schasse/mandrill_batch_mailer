@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe MandrillBatchMailer::BaseMailer, :dbless do
   let(:user_dup) do
-    -> do
+    lambda do
       double locale: :de, email: Faker::Internet.email, first_name: Faker.name
     end
   end
@@ -15,25 +15,23 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
 
   let(:translations) do
     {
-      mandrill_batch_mailer: {
-        shared_translations: {
-          salutation: 'Hello'
+      shared_translations: {
+        salutation: 'Hello'
+      },
+      test_mailer: {
+        testing: {
+          subject: 'A Test Subject',
+          just_a_test: 'This is just a test',
+          regards: 'Regards, your dev team'
         },
-        test_mailer: {
-          testing: {
-            subject: 'A Test Subject',
-            just_a_test: 'This is just a test',
-            regards: 'Regards, your dev team'
-          },
-          test_bulk: {
-            salutation: 'Hello %{name}'
-          }
+        test_bulk: {
+          salutation: 'Hello %{name}'
         }
       }
     }
   end
 
-  class MandrillBatchMailer::TestMailer < MandrillBatchMailer::BaseMailer
+  class TestMailer < MandrillBatchMailer::BaseMailer
     def testing(user)
       @user = user
       mail to: user.email
@@ -41,16 +39,26 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
 
     def test_bulk(users)
       @user = users.first # TODO: think about I18n.locale
-      to_params = users.map do |user|
-        [user.email,
-          { salutation: I18n.t(:salutation, name: user.first_name,
-              scope: 'mandrill.test_mailer.test_bulk') }]
+      mail to: to_params(users)
+    end
+
+    private
+
+    def to_params(users)
+      users.map do |user|
+        [
+          user.email,
+          { salutation: I18n.t(
+              :salutation,
+              name: user.first_name,
+              scope: 'mandrill.test_mailer.test_bulk')
+          }
+        ]
       end.to_h
-      mail to: to_params
     end
   end
 
-  let(:test_mailer) { MandrillBatchMailer::TestMailer.new :testing }
+  let(:test_mailer) { TestMailer.new :testing }
   let(:base_mailer) { MandrillBatchMailer::BaseMailer.new :testing }
 
   before do
@@ -121,7 +129,7 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
   describe '#template_name' do
     subject { test_mailer.send :template_name }
 
-    it { should eq 'test-mailer-testing'}
+    it { should eq 'test-mailer-testing' }
 
     context 'when calling from BaseMailer' do
       subject { base_mailer.send :template_name }
@@ -147,7 +155,7 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
 
   describe '#to' do
     before do
-      test_mailer.instance_variable_set :@tos, { user.email => [] }
+      test_mailer.instance_variable_set :@tos, user.email => []
     end
     subject { test_mailer.send :to }
 
@@ -175,13 +183,13 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
 
   describe '#merge_vars' do
     before do
-      test_mailer.instance_variable_set :@tos,
-        base_mailer.send(:tos_from, user.email)
+      test_mailer
+        .instance_variable_set :@tos, base_mailer.send(:tos_from, user.email)
     end
     subject(:merge_vars) { test_mailer.send :merge_vars }
 
     context 'when not intercept', intercept: false do
-      it { should eq [{ rcpt: user.email, vars: [] }]}
+      it { should eq [{ rcpt: user.email, vars: [] }] }
     end
     context 'when intercept_recipients', :intercept do
       it { expect(merge_vars.first[:rcpt]).to eq 'notifier+0@some-domain.com' }
@@ -213,14 +221,14 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
   describe '#translations' do
     subject { test_mailer.send :translations }
     it do
-      should eq translations[:mandrill_batch_mailer][:test_mailer][:testing]
+      should eq translations[:test_mailer][:testing]
     end
   end
 
   describe '#shared_translations' do
     subject { test_mailer.send :shared_translations }
     it do
-      should eq translations[:mandrill_batch_mailer][:shared_translations]
+      should eq translations[:shared_translations]
         .deep_merge(subject)
     end
   end
