@@ -63,47 +63,44 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
 
   shared_context 'when intercepting', :intercept do
     before do
-      @old_intercept = MandrillBatchMailer::BaseMailer.intercept_recipients
-      MandrillBatchMailer::BaseMailer.intercept_recipients = true
-      @old_intercept_mail =
-        MandrillBatchMailer::BaseMailer.interception_base_mail
-      MandrillBatchMailer::BaseMailer.interception_base_mail =
-        'notifier@gapfish.com'
+      @old_intercept = MandrillBatchMailer.intercept_recipients
+      MandrillBatchMailer.intercept_recipients = true
+      @old_intercept_mail = MandrillBatchMailer.interception_base_mail
+      MandrillBatchMailer.interception_base_mail = 'notifier@some-domain.com'
     end
     after do
-      MandrillBatchMailer::BaseMailer.intercept_recipients = @old_value
-      MandrillBatchMailer::BaseMailer.interception_base_mail =
-        @old_intercept_mail
+      MandrillBatchMailer.intercept_recipients = @old_value
+      MandrillBatchMailer.interception_base_mail = @old_intercept_mail
     end
   end
 
   shared_context 'when not intercepting', intercept: false do
     before do
-      @old_intercept = MandrillBatchMailer::BaseMailer.intercept_recipients
-      MandrillBatchMailer::BaseMailer.intercept_recipients = false
+      @old_intercept = MandrillBatchMailer.intercept_recipients
+      MandrillBatchMailer.intercept_recipients = false
     end
     after do
-      MandrillBatchMailer::BaseMailer.intercept_recipients = @old_intercept
+      MandrillBatchMailer.intercept_recipients = @old_intercept
     end
   end
 
   shared_context 'when delivering', :deliver do
     before do
-      @old_deliveries = MandrillBatchMailer::BaseMailer.perform_deliveries
-      MandrillBatchMailer::BaseMailer.perform_deliveries = true
+      @old_deliveries = MandrillBatchMailer.perform_deliveries
+      MandrillBatchMailer.perform_deliveries = true
     end
     after do
-      MandrillBatchMailer::BaseMailer.perform_deliveries = @old_deliveries
+      MandrillBatchMailer.perform_deliveries = @old_deliveries
     end
   end
 
   shared_context 'when not delivering', deliver: false do
     before do
-      @old_deveries = MandrillBatchMailer::BaseMailer.perform_deliveries
-      MandrillBatchMailer::BaseMailer.perform_deliveries = false
+      @old_deveries = MandrillBatchMailer.perform_deliveries
+      MandrillBatchMailer.perform_deliveries = false
     end
     after do
-      MandrillBatchMailer::BaseMailer.perform_deliveries = @old_deliveries
+      MandrillBatchMailer.perform_deliveries = @old_deliveries
     end
   end
 
@@ -155,7 +152,7 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
     subject { test_mailer.send :to }
 
     context 'when intercepted', :intercept do
-      it { should eq [{ email: 'notifier+0@gapfish.com' }] }
+      it { should eq [{ email: 'notifier+0@some-domain.com' }] }
     end
 
     context 'when not intercepted', intercept: false do
@@ -187,7 +184,7 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
       it { should eq [{ rcpt: user.email, vars: [] }]}
     end
     context 'when intercept_recipients', :intercept do
-      it { expect(merge_vars.first[:rcpt]).to eq 'notifier+0@gapfish.com' }
+      it { expect(merge_vars.first[:rcpt]).to eq 'notifier+0@some-domain.com' }
       it do
         expect(merge_vars.first[:vars].first[:content]).to include user.email
       end

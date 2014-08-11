@@ -1,10 +1,20 @@
 require 'active_support'
 require 'active_support/inflector'
 require 'active_support/core_ext/object/try'
+require 'active_support/configurable'
 
 module MandrillBatchMailer
+  include ActiveSupport::Configurable
+
   ENDPOINT = 'https://mandrillapp.com/api/1.0/messages/'\
     'send-template.json'
+
+  mattr_accessor :intercept_recipients, :interception_base_mail,
+    :perform_deliveries, :from_email, :from_name, :api_key
+
+  self.perform_deliveries = false
+  self.intercept_recipients = false
+  self.interception_base_mail = ''
 
   def self.logger
     @logger ||= rails_logger || Logger.new(STDOUT)
@@ -25,18 +35,6 @@ module MandrillBatchMailer
 
     public
 
-      cattr_accessor :intercept_recipients, :interception_base_mail,
-        :perform_deliveries, :from_email, :from_name, :api_key
-
-    # Redirect all mails to one address.
-    self.intercept_recipients = true
-    # Set a mail address you want your mails redirected to. '+#{nr}' will be
-    # added for each recipient and the subject line includes the original mail
-    # address.
-    self.interception_base_mail = 'staging-notifier@gapfish.com'
-    # Set to true to *really* send data to mandrill.
-    self.perform_deliveries = false
-
     def initialize(method)
       self.caller_method_name = method
     end
@@ -48,21 +46,17 @@ module MandrillBatchMailer
 
     # feel free to override
     def from_email
-      self.class.from_email
+      MandrillBatchMailer.from_email
     end
 
     # feel free to override
     def from_name
-      self.class.from_name || ''
+      MandrillBatchMailer.from_name || ''
     end
 
     # feel free to override
     def tags
       ["#{template_name}"]
-    end
-
-    def api_key
-      self.class.api_key
     end
 
     class << self
@@ -87,7 +81,7 @@ module MandrillBatchMailer
 
       def mandrill_parameters
         {
-          key: api_key,
+          key: MandrillBatchMailer.api_key,
           template_name: template_name,
           template_content: [],
           message: {
@@ -116,7 +110,7 @@ module MandrillBatchMailer
 
       def _default
         given_defaults = (respond_to?(:default, true) && default) || {}
-        if MandrillBatchMailer::BaseMailer.intercept_recipients
+        if MandrillBatchMailer.intercept_recipients
           given_defaults[:message].try(:delete, :to)
         end
         given_defaults
@@ -140,9 +134,9 @@ module MandrillBatchMailer
       end
 
       def to
-        if MandrillBatchMailer::BaseMailer.intercept_recipients
+        if MandrillBatchMailer.intercept_recipients
           @tos.keys.size.times.map do |i|
-            { email: MandrillBatchMailer::BaseMailer
+            { email: MandrillBatchMailer
                 .interception_base_mail.sub('@', "+#{i}@") }
           end
         else
@@ -157,8 +151,8 @@ module MandrillBatchMailer
       def merge_vars
         @tos.each_with_index.map do |to, i|
           to_email, vars = to.to_a
-          if MandrillBatchMailer::BaseMailer.intercept_recipients
-            { rcpt: MandrillBatchMailer::BaseMailer.interception_base_mail
+          if MandrillBatchMailer.intercept_recipients
+            { rcpt: MandrillBatchMailer.interception_base_mail
                 .sub('@', "+#{i}@"),
               vars: intercepted_merge_vars(to_email, vars)
             }
@@ -212,7 +206,7 @@ module MandrillBatchMailer
       end
 
       def send_template(params)
-        if MandrillBatchMailer::BaseMailer.perform_deliveries
+        if MandrillBatchMailer.perform_deliveries
           RestClient.post MandrillBatchMailer::ENDPOINT, params.to_json
           params
         else
