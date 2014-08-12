@@ -1,31 +1,8 @@
 require 'active_support'
 require 'active_support/inflector'
 require 'active_support/core_ext/object/try'
-require 'active_support/configurable'
 
 module MandrillBatchMailer
-  include ActiveSupport::Configurable
-
-  ENDPOINT = 'https://mandrillapp.com/api/1.0/messages/'\
-    'send-teplate.json'
-
-  mattr_accessor :intercept_recipients, :interception_base_mail,
-                 :perform_deliveries, :from_email, :from_name, :api_key
-
-  self.perform_deliveries = false
-  self.intercept_recipients = false
-  self.interception_base_mail = ''
-
-  attr_writer :logger
-
-  def self.logger
-    @logger ||= rails_logger || Logger.new(STDOUT)
-  end
-
-  def self.rails_logger
-    defined?(Rails) && Rails.logger
-  end
-
   class BaseMailer
     private
 
@@ -154,9 +131,7 @@ module MandrillBatchMailer
           if MandrillBatchMailer.intercept_recipients
             intercepted_merge_vars(to_email, vars, i)
           else
-            { rcpt: to_email,
-              vars: merge_vars_from(vars)
-            }
+            { rcpt: to_email,  vars: merge_vars_from(vars) }
           end
         end
       end
