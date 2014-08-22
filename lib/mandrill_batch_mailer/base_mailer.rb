@@ -98,14 +98,6 @@ module MandrillBatchMailer
           .gsub '_', '-'
       end
 
-      def tags
-        ["#{template_name}_#{locale}"]
-      end
-
-      def locale
-        I18n.locale
-      end
-
       def subject
         '*|subject|*'
       end

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe MandrillBatchMailer::BaseMailer, :dbless do
+describe MandrillBatchMailer::BaseMailer do
   let(:user_dup) do
     lambda do
       double locale: :de, email: Faker::Internet.email, first_name: Faker.name
@@ -38,7 +38,7 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
     end
 
     def test_bulk(users)
-      @user = users.first # TODO: think about I18n.locale
+      @user = users.first
       mail to: to_params(users)
     end
 
@@ -256,9 +256,44 @@ describe MandrillBatchMailer::BaseMailer, :dbless do
     end
 
     context 'when not performing deliveries', deliver: false do
-      after { test_mailer.send :send_template, params }
       it 'just logs something' do
         expect(MandrillBatchMailer.logger).to receive(:info)
+        test_mailer.send :send_template, params
+      end
+
+      context 'awesome_print is available' do
+        before { module AwesomePrint; end }
+        after { Object.send :remove_const, 'AwesomePrint' }
+
+        it 'uses awesome_print' do
+          expect_any_instance_of(Hash).to receive :ai
+          test_mailer.send :send_template, params
+        end
+      end
+    end
+  end
+
+  describe '#tags' do
+    before do
+      allow(base_mailer)
+        .to receive(:template_name)
+        .and_return 'my_template_name'
+    end
+
+    it 'defaults to template name' do
+      expect(base_mailer.tags).to eq ['my_template_name']
+    end
+  end
+
+  describe 'calling the Mailer with class methods' do
+    it 'should create an instance and call instance_method' do
+      expect_any_instance_of(TestMailer).to receive :testing
+      TestMailer.testing
+    end
+
+    context 'when instance method does not exist' do
+      it 'throws an error' do
+        expect { TestMailer.method_does_not_exist }.to raise_error
       end
     end
   end
