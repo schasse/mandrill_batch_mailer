@@ -3,6 +3,7 @@ PATH
   specs:
     mandrill_batch_mailer (0.0.1)
       activesupport
+      rest-client
 
 GEM
   remote: http://rubygems.org/

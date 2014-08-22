@@ -5,8 +5,11 @@ require 'faker'
 require 'simplecov'
 require 'coveralls'
 
+SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+  SimpleCov::Formatter::HTMLFormatter,
+  Coveralls::SimpleCov::Formatter
+]
 SimpleCov.start
-Coveralls.wear!
 
 require 'mandrill_batch_mailer'
 require 'mandrill_batch_mailer/base_mailer'
