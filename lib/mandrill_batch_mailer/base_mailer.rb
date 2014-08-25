@@ -3,21 +3,6 @@ require 'active_support/inflector'
 require 'active_support/core_ext/object/try'
 
 module MandrillBatchMailer
-  ENDPOINT = 'https://mandrillapp.com/api/1.0/messages/'\
-    'send-template.json'
-
-  def self.logger
-    @logger ||= rails_logger || Logger.new(STDOUT)
-  end
-
-  def self.logger=(logger)
-    @logger = logger
-  end
-
-  def self.rails_logger
-    defined?(Rails) && Rails.logger
-  end
-
   class BaseMailer
     private
 
@@ -25,57 +10,41 @@ module MandrillBatchMailer
 
     public
 
-      cattr_accessor :intercept_recipients, :interception_base_mail,
-        :perform_deliveries, :from_email, :from_name, :api_key
+      def initialize(method)
+        self.caller_method_name = method
+      end
 
-    # Redirect all mails to one address.
-    self.intercept_recipients = true
-    # Set a mail address you want your mails redirected to. '+#{nr}' will be
-    # added for each recipient and the subject line includes the original mail
-    # address.
-    self.interception_base_mail = 'staging-notifier@gapfish.com'
-    # Set to true to *really* send data to mandrill.
-    self.perform_deliveries = false
+      def mail(to: nil)
+        @tos = tos_from(to)
+        send_template mandrill_parameters
+      end
 
-    def initialize(method)
-      self.caller_method_name = method
-    end
+      # feel free to override
+      def from_email
+        MandrillBatchMailer.from_email
+      end
 
-    def mail(to: nil)
-      @tos = tos_from(to)
-      send_template mandrill_parameters
-    end
+      # feel free to override
+      def from_name
+        MandrillBatchMailer.from_name || ''
+      end
 
-    # feel free to override
-    def from_email
-      self.class.from_email
-    end
+      # feel free to override
+      def tags
+        ["#{template_name}"]
+      end
 
-    # feel free to override
-    def from_name
-      self.class.from_name || ''
-    end
-
-    # feel free to override
-    def tags
-      ["#{template_name}"]
-    end
-
-    def api_key
-      self.class.api_key
-    end
-
-    class << self
-      # do it just as ActionMailer
-      def method_missing(method, *args)
-        mailer = new method
-        if mailer.respond_to? method
-          mailer.public_send(method, *args)
-        else
-          super method, *args
+      class << self
+        # do it just as ActionMailer
+        def method_missing(method, *args)
+          mailer = new method
+          if mailer.respond_to? method
+            mailer.public_send(method, *args)
+          else
+            super method, *args
+          end
         end
       end
-    end
 
     protected
 
@@ -85,9 +54,10 @@ module MandrillBatchMailer
 
     private
 
+      # rubocop:disable MethodLength
       def mandrill_parameters
         {
-          key: api_key,
+          key: MandrillBatchMailer.api_key,
           template_name: template_name,
           template_content: [],
           message: {
@@ -113,10 +83,11 @@ module MandrillBatchMailer
           async: true
         }.deep_merge(_default)
       end
+      # rubocop:enable MethodLength
 
       def _default
         given_defaults = (respond_to?(:default, true) && default) || {}
-        if MandrillBatchMailer::BaseMailer.intercept_recipients
+        if MandrillBatchMailer.intercept_recipients
           given_defaults[:message].try(:delete, :to)
         end
         given_defaults
@@ -127,22 +98,14 @@ module MandrillBatchMailer
           .gsub '_', '-'
       end
 
-      def tags
-        ["#{template_name}_#{locale}"]
-      end
-
-      def locale
-        I18n.locale
-      end
-
       def subject
         '*|subject|*'
       end
 
       def to
-        if MandrillBatchMailer::BaseMailer.intercept_recipients
+        if MandrillBatchMailer.intercept_recipients
           @tos.keys.size.times.map do |i|
-            { email: MandrillBatchMailer::BaseMailer
+            { email: MandrillBatchMailer
                 .interception_base_mail.sub('@', "+#{i}@") }
           end
         else
@@ -157,22 +120,20 @@ module MandrillBatchMailer
       def merge_vars
         @tos.each_with_index.map do |to, i|
           to_email, vars = to.to_a
-          if MandrillBatchMailer::BaseMailer.intercept_recipients
-            { rcpt: MandrillBatchMailer::BaseMailer.interception_base_mail
-                .sub('@', "+#{i}@"),
-              vars: intercepted_merge_vars(to_email, vars)
-            }
+          if MandrillBatchMailer.intercept_recipients
+            intercepted_merge_vars(to_email, vars, i)
           else
-            { rcpt: to_email,
-              vars: merge_vars_from(vars)
-            }
+            { rcpt: to_email,  vars: merge_vars_from(vars) }
           end
         end
       end
 
-      def intercepted_merge_vars(to_email, vars)
-        merge_vars_from(vars.merge(
-          subject: "#{to_email} #{vars[:subject] || translations[:subject]}"))
+      def intercepted_merge_vars(to_email, vars, i)
+        subject = vars[:subject] || translations[:subject]
+        {
+          rcpt: MandrillBatchMailer.interception_base_mail.sub('@', "+#{i}@"),
+          vars: merge_vars_from(vars.merge(subject: "#{to_email} #{subject}"))
+        }
       end
 
       ## HELPER METHODS ##
@@ -201,8 +162,9 @@ module MandrillBatchMailer
       end
 
       def shared_translations
-        I18n.t "#{class_name.deconstantize.underscore}.shared_translations",
-          default: {}
+        I18n.t(
+          "#{class_name.deconstantize.underscore}.shared_translations",
+          default: {})
       end
 
       def merge_vars_from(translations)
@@ -212,20 +174,24 @@ module MandrillBatchMailer
       end
 
       def send_template(params)
-        if MandrillBatchMailer::BaseMailer.perform_deliveries
+        if MandrillBatchMailer.perform_deliveries
           RestClient.post MandrillBatchMailer::ENDPOINT, params.to_json
           params
         else
-          params_inspect =
-            if defined? AwesomePrint
-              params.ai
-            else
-              params.inspect
-            end
-          MandrillBatchMailer.logger
-            .info "Sending Mandrill Mail: #{params_inspect}"
+          log_sending(params)
           params
         end
+      end
+
+      def log_sending(params)
+        params_inspect =
+          if defined? AwesomePrint
+            params.ai
+          else
+            params.inspect
+          end
+        MandrillBatchMailer.logger
+          .info "Sending Mandrill Mail: #{params_inspect}"
       end
   end
 end
