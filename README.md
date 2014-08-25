@@ -42,20 +42,15 @@ Send batched Mails via Mandrill API.
     en:
       mandrill:
         shared_translations:
-          address_name: 'My App'
-          address_street: '89 Colin P Kelly Jr St'
-          address_zip: 'San Francisco, CA 94107'
-          address_state: 'United States'
+          cheers: 'Cheers Your App-Team''
         welcome_mailer:
           welcome:
             subject: 'Welcome to our App!'
             welcome_to_app: 'welcome to our App.'
-            cheers: 'Cheers Your App-Team''
         mass_mailer:
           mass_mail:
             subject: 'This is a mass mail'
             be_awesome: 'let's be awesome!'
-            cheers: 'Cheers Your App-Team''
 
     # app/mailers/mandrill/welcome_mailer.rb
 
