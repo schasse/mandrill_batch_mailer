@@ -6,11 +6,11 @@
 
 Send batched Mails via Mandrill API.
 
-## INSTALLATION
+## Installation
 
     gem install mandrill_batch_mailer
 
-## CONFIGURATION
+## Configuration
 
     # config/mandrill_batch_mailer.rb
 
@@ -35,7 +35,7 @@ Send batched Mails via Mandrill API.
     end
 
 
-## EXAMPLE
+## Example
 
     # config/locales/en.yml
 
