@@ -37,4 +37,63 @@ Send batched Mails via Mandrill API.
 
 ## EXAMPLE
 
-  TODO
+    # config/locales/en.yml
+
+    en:
+      mandrill:
+        shared_translations:
+          address_name: 'My App'
+          address_street: '89 Colin P Kelly Jr St'
+          address_zip: 'San Francisco, CA 94107'
+          address_state: 'United States'
+        welcome_mailer:
+          welcome:
+            subject: 'Welcome to our App!'
+            welcome_to_app: 'welcome to our App.'
+            cheers: 'Cheers Your App-Team''
+        mass_mailer:
+          mass_mail:
+            subject: 'This is a mass mail'
+            be_awesome: 'let's be awesome!'
+            cheers: 'Cheers Your App-Team''
+
+    # app/mailers/mandrill/welcome_mailer.rb
+
+    class Mandrill::WelcomeMailer < MandrillBatchMailer::BaseMailer
+      def welcome(user_id)
+        @user = User.find user_id
+        mail to: welcome_merge_vars
+      end
+
+      private
+
+      def welcome_merge_vars
+        {
+          @user.email => {
+            user_salutation: @user.salutation
+          }
+        }
+      end
+    end
+
+    # app/mailers/mandrill/mass_mailer.rb
+
+    class Mandrill::MassMailer < MandrillBatchMailer::BaseMailer
+
+      def mass_mail(user_ids)
+        @users = User.find user_ids
+        mail to: mass_mail_merge_vars
+      end
+
+      private
+
+      def mass_mail_merge_vars
+        @users.map do |user|
+          [user.email,
+            {
+              user_salutation: user.salutation
+            }
+          ]
+        end.to_h
+      end
+    end
