@@ -7,12 +7,12 @@ module MandrillBatchMailer
   ENDPOINT = 'https://mandrillapp.com/api/1.0/messages/'\
              'send-template.json'
 
-  mattr_accessor :perform_deliveries,
-                 :intercept_recipients,
-                 :interception_base_mail,
-                 :from_email,
-                 :from_name,
-                 :api_key
+  config_accessor :perform_deliveries,
+                  :intercept_recipients,
+                  :interception_base_mail,
+                  :from_email,
+                  :from_name,
+                  :api_key
 
   self.perform_deliveries = false
   self.intercept_recipients = false

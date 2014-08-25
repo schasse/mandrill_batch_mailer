@@ -14,7 +14,7 @@ Send batched Mails via Mandrill API.
 
     # config/mandrill_batch_mailer.rb
 
-    MandrillBatchMailer.config do |config|
+    MandrillBatchMailer.configure do |config|
       # enable sending mails via the Mandrill API, default is false
       config.perform_deliveries = true
 
@@ -28,6 +28,10 @@ Send batched Mails via Mandrill API.
 
       # Set to your Mandrill API Key you get from Mandrill.
       config.api_key = '3x4mpl3_k3y'
+
+      # Set your from e-mail address and name
+      config.from_email = 'mail@my-app.com'
+      config.from_name = 'My App'
     end
 
 
