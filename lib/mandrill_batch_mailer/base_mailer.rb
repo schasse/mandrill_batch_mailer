@@ -1,6 +1,7 @@
 require 'active_support'
 require 'active_support/inflector'
 require 'active_support/core_ext/object/try'
+require 'active_support/core_ext/hash/deep_merge.rb'
 
 module MandrillBatchMailer
   class BaseMailer
@@ -154,7 +155,19 @@ module MandrillBatchMailer
       end
 
       def translations
-        I18n.t scope, default: {}
+        if I18n.methods.include? :fallbacks
+          fallback_translations scope
+        else
+          I18n.t scope
+        end
+      end
+
+      def fallback_translations(scope)
+        I18n.fallbacks[I18n.locale].map do |fallback_locale|
+          I18n.t scope, locale: fallback_locale
+        end.reduce do |orig_translations, fallback_translations|
+          fallback_translations.deep_merge orig_translations
+        end
       end
 
       def class_name
@@ -162,9 +175,13 @@ module MandrillBatchMailer
       end
 
       def shared_translations
-        I18n.t(
-          "#{class_name.deconstantize.underscore}.shared_translations",
-          default: {})
+        shared_scope =
+          "#{class_name.deconstantize.underscore}.shared_translations"
+        if I18n.methods.include? :fallbacks
+          fallback_translations shared_scope
+        else
+          I18n.t shared_scope
+        end
       end
 
       def merge_vars_from(translations)
