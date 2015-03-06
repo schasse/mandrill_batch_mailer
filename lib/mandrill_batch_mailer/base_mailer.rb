@@ -166,7 +166,11 @@ module MandrillBatchMailer
         I18n.fallbacks[I18n.locale].map do |fallback_locale|
           I18n.t scope, locale: fallback_locale
         end.reduce do |orig_translations, fallback_translations|
-          fallback_translations.deep_merge orig_translations
+          if fallback_translations.is_a? Hash
+            fallback_translations.deep_merge orig_translations
+          else
+            orig_translations
+          end
         end
       end
 
