@@ -219,9 +219,26 @@ describe MandrillBatchMailer::BaseMailer do
   end
 
   describe '#translations' do
-    subject { test_mailer.send :translations }
+    subject(:translated) { test_mailer.send :translations }
     it do
       should eq translations[:test_mailer][:testing]
+    end
+
+    context 'with de translations and fallbacks on' do
+      let(:de_translations) do
+        { test_mailer: { testing: { subject: 'Ein Test Betreff' } } }
+      end
+      before do
+        I18n::Backend::Simple.include I18n::Backend::Fallbacks
+        I18n.backend.store_translations :de, de_translations
+        I18n.locale = :de
+      end
+      after { I18n.locale = :en }
+
+      it 'uses fallbacks' do
+        expect(translated[:subject]).to eq 'Ein Test Betreff'
+        expect(translated[:just_a_test]).to eq 'This is just a test'
+      end
     end
   end
 

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mandrill_batch_mailer (1.0.0)
+    mandrill_batch_mailer (1.1.0)
       activesupport
       rest-client
 
