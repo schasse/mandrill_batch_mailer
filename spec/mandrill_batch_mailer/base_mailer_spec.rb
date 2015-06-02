@@ -256,8 +256,12 @@ describe MandrillBatchMailer::BaseMailer do
     context 'when delivering', :deliver do
 
       it "calls mandrill's endoint, when performing deliveries" do
-        expect(RestClient).to receive(:post)
-          .with(MandrillBatchMailer::ENDPOINT, params.to_json)
+        expect(RestClient::Request).to receive(:execute).with(
+          method: :post,
+          url: MandrillBatchMailer::ENDPOINT,
+          payload: params.to_json,
+          read_timeout: 180,
+          open_timeout: 30)
         test_mailer.send :send_template, params
       end
 
