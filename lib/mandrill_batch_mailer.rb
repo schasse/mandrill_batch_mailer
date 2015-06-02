@@ -8,6 +8,8 @@ module MandrillBatchMailer
              'send-template.json'
 
   config_accessor :perform_deliveries,
+                  :open_timeout,
+                  :read_timeout,
                   :intercept_recipients,
                   :interception_base_mail,
                   :from_email,
@@ -15,6 +17,8 @@ module MandrillBatchMailer
                   :api_key
 
   self.perform_deliveries = false
+  self.open_timeout = 30
+  self.read_timeout = 180
   self.intercept_recipients = false
   self.interception_base_mail = ''
 

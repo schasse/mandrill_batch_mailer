@@ -196,7 +196,12 @@ module MandrillBatchMailer
 
       def send_template(params)
         if MandrillBatchMailer.perform_deliveries
-          RestClient.post MandrillBatchMailer::ENDPOINT, params.to_json
+          RestClient::Request.execute(
+            method: :post,
+            url: MandrillBatchMailer::ENDPOINT,
+            payload: params.to_json,
+            read_timeout: MandrillBatchMailer.read_timeout,
+            open_timeout: MandrillBatchMailer.open_timeout)
           params
         else
           log_sending(params)
